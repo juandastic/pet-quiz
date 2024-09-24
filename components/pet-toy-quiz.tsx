@@ -43,15 +43,21 @@ const questions: Question[] = [
     id: "energyLevel",
     text: "¿Cuál es el nivel de energía tu [mascota]?",
     options: ["Bajo", "Moderado", "Alto"],
-    icon: <Rabbit className="w-8 h-8" />,
-    condition: (answers) => ["Perro", "Gato"].includes(answers.petType)
+    icon: <Rabbit className="w-8 h-8" />
   },
   {
-    id: "toyPreference",
+    id: "toyDogPreference",
     text: "¿Cuál de estos tipos juguetes parece gustarle más a tu [mascota]?",
-    options: ["Pelotas", "Juguetes de cuerda", "Juguetes de peluche", "Juguetes interactivos", "Juguetes para morder"],
+    options: ["Pelotas", "Juguetes de cuerda", "Juguetes de peluche", "Juguetes interactivos (rompecabezas, dispensadores de comida)", "Juguetes para morder"],
     icon: <Dog className="w-8 h-8" />,
-    condition: (answers) => ["Moderado", "Alto"].includes(answers.energyLevel)
+    condition: (answers) => ["Moderado", "Alto"].includes(answers.energyLevel) && answers.petType === "Perro"
+  },
+  {
+    id: "toyCatPreference",
+    text: "¿Cuál de estos tipos juguetes parece gustarle más a tu [mascota]?",
+    options: ["Ratones de peluche", "Cajas y túneles", "Plumas o juguetes colgantes", "Juguetes interactivos (rompecabezas, dispensadores de comida)", "Juguetes con luces o láser"],
+    icon: <Dog className="w-8 h-8" />,
+    condition: (answers) => ["Moderado", "Alto"].includes(answers.energyLevel) && answers.petType === "Gato"
   },
   {
     id: "chewingHabits",
@@ -122,7 +128,9 @@ export function PetToyQuiz() {
     setShowResults(false)
   }
 
-  const progress = ((Object.keys(answers).length) / questions.length) * 100
+  const totalQuestionsLeft = questions.filter((q, index) => index > currentQuestionIndex && (!q.condition || q.condition(answers))).length
+  const totalQuestions = (Object.keys(answers).length + totalQuestionsLeft)
+  const progress = (Object.keys(answers).length / totalQuestions) * 100
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 flex items-center justify-center p-4" style={{
@@ -131,7 +139,7 @@ export function PetToyQuiz() {
       <Card className="w-full max-w-md mx-auto bg-white/80 backdrop-blur-sm shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-purple-700">
-            {showResults ? "Resumen de tus respuestas" : `Pregunta ${Object.keys(answers).length + 1} de ${questions.length}`}
+            Descubre el juguete ideal para tu mascota
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -154,7 +162,7 @@ export function PetToyQuiz() {
                 transition={{ duration: 0.5 }}
               >
                 <h2 className="text-lg font-semibold mb-4 text-purple-800">
-                  {currentQuestion.text.replace("[mascota]", answers.petType || "mascota")}
+                  {currentQuestion.text.replace("[mascota]", ["Perro", "Gato"].includes(answers.petType) ?  answers.petType : "mascota")}
                 </h2>
                 {currentQuestion.options.length > 0 ? (
                   <RadioGroup onValueChange={handleAnswer} className="space-y-2">
