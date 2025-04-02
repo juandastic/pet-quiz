@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
@@ -8,7 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 import { motion } from "framer-motion"
-import { Dog, Cat, Rabbit } from "lucide-react"
+import { Dog, Cat, Rabbit, Loader2, ArrowLeft } from "lucide-react"
+import { formatQuizAnswers, getRecommendations, RecommendationResponse } from "@/services/api"
+import { ProductRecommendations } from "@/components/product-recommendations"
 
 type Question = {
   id: string
@@ -55,14 +57,14 @@ const questions: Question[] = [
   {
     id: "toyDogPreference",
     text: "¿Qué tipo de juguetes prefiere tu perro?",
-    options: ["Pelotas y juguetes para lanzar", "Juguetes de cuerda para tirar", "Juguetes de peluche", "Juguetes interactivos o dispensadores", "Juguetes para morder o masticar"],
+    options: ["Pelotas y juguetes para lanzar", "Juguetes de cuerda para tirar", "Juguetes de peluche", "Juguetes interactivos o dispensadores", "Juguetes para morder o masticar", "No muestra preferencias claras"],
     icon: <Dog className="w-8 h-8" />,
     condition: (answers) => answers.petType === "Perro"
   },
   {
     id: "toyCatPreference",
     text: "¿Qué tipo de juguetes prefiere tu gato?",
-    options: ["Ratones y juguetes pequeños", "Túneles y escondites", "Juguetes con plumas o colgantes", "Juguetes interactivos o dispensadores", "Juguetes con luces o láser"],
+    options: ["Ratones y juguetes pequeños", "Túneles y escondites", "Juguetes con plumas o colgantes", "Juguetes interactivos o dispensadores", "Juguetes con luces o láser", "No muestra preferencias claras"],
     icon: <Cat className="w-8 h-8" />,
     condition: (answers) => answers.petType === "Gato"
   },
@@ -76,7 +78,7 @@ const questions: Question[] = [
   {
     id: "toyOtherPreference",
     text: "¿Qué tipo de juguetes prefiere tu mascota?",
-    options: ["Juguetes para masticar", "Túneles y escondites", "Juguetes para empujar", "Juguetes interactivos o dispensadores"],
+    options: ["Juguetes para masticar", "Túneles y escondites", "Juguetes para empujar", "Juguetes interactivos o dispensadores", "No muestra preferencias claras"],
     icon: <Rabbit className="w-8 h-8" />,
     condition: (answers) => answers.petType === "Otro"
   },
@@ -131,12 +133,20 @@ export function PetToyQuiz() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [showResults, setShowResults] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [recommendations, setRecommendations] = useState<RecommendationResponse | null>(null)
+  const [answeredQuestions, setAnsweredQuestions] = useState<number[]>([])
 
   const currentQuestion = questions[currentQuestionIndex]
 
   const handleAnswer = (answer: string) => {
     const newAnswers = { ...answers, [currentQuestion.id]: answer }
     setAnswers(newAnswers)
+
+    // Add current question to answered questions if not already there
+    if (!answeredQuestions.includes(currentQuestionIndex)) {
+      setAnsweredQuestions([...answeredQuestions, currentQuestionIndex])
+    }
 
     const nextQuestionIndex = questions.findIndex((q, index) =>
       index > currentQuestionIndex && (!q.condition || q.condition(newAnswers))
@@ -158,7 +168,39 @@ export function PetToyQuiz() {
     setCurrentQuestionIndex(0)
     setAnswers({})
     setShowResults(false)
+    setRecommendations(null)
+    setAnsweredQuestions([])
   }
+
+  const goToPreviousQuestion = () => {
+    // Find the previous question that was answered or meets the condition
+    const previousQuestions = answeredQuestions
+      .filter(index => index < currentQuestionIndex)
+      .sort((a, b) => b - a) // Sort in descending order to get the most recent previous question
+
+    if (previousQuestions.length > 0) {
+      setCurrentQuestionIndex(previousQuestions[0])
+    }
+  }
+
+  useEffect(() => {
+    async function fetchRecommendations() {
+      if (showResults) {
+        try {
+          setIsLoading(true);
+          const formattedQuiz = formatQuizAnswers(answers, questions);
+          const data = await getRecommendations(formattedQuiz);
+          setRecommendations(data);
+        } catch (error) {
+          console.error('Error fetching recommendations:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchRecommendations();
+  }, [showResults, answers]);
 
   const totalQuestionsLeft = questions.filter((q, index) => index > currentQuestionIndex && (!q.condition || q.condition(answers))).length
   const totalQuestions = (Object.keys(answers).length + totalQuestionsLeft)
@@ -189,7 +231,20 @@ export function PetToyQuiz() {
                   {currentQuestion.icon}
                 </motion.div>
               </div>
-              <Progress value={progress} className="mb-6" />
+              <div className="flex items-center mb-4">
+                <Progress value={progress} className="flex-grow" />
+                {currentQuestionIndex > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={goToPreviousQuestion}
+                    className="ml-2 text-purple-600 hover:text-purple-800 hover:bg-purple-100"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    Atrás
+                  </Button>
+                )}
+              </div>
               <motion.div
                 key={currentQuestion.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -200,23 +255,70 @@ export function PetToyQuiz() {
                   {currentQuestion.text.replace("[mascota]", ["Perro", "Gato", "Conejo"].includes(answers.petType) ? answers.petType.toLowerCase() : "mascota")}
                 </h2>
                 {currentQuestion.options.length > 0 ? (
-                  <RadioGroup onValueChange={handleAnswer} className="space-y-2">
-                    {currentQuestion.options.map((option) => (
-                      <div key={option} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-purple-100 transition-colors">
-                        <RadioGroupItem value={option} id={option} />
-                        <Label htmlFor={option} className="flex-grow cursor-pointer">{option}</Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
+                  <>
+                    <RadioGroup 
+                      onValueChange={handleAnswer} 
+                      className="space-y-2"
+                      defaultValue={answers[currentQuestion.id]}
+                    >
+                      {currentQuestion.options.map((option) => (
+                        <div key={option} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-purple-100 transition-colors">
+                          <RadioGroupItem value={option} id={option} />
+                          <Label htmlFor={option} className="flex-grow cursor-pointer">{option}</Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                    {answers[currentQuestion.id] && (
+                      <Button 
+                        onClick={() => {
+                          // Find the next question
+                          const nextQuestionIndex = questions.findIndex((q, index) =>
+                            index > currentQuestionIndex && (!q.condition || q.condition(answers))
+                          )
+                          
+                          if (nextQuestionIndex !== -1) {
+                            setCurrentQuestionIndex(nextQuestionIndex)
+                          } else {
+                            setShowResults(true)
+                          }
+                        }} 
+                        className="w-full mt-4 bg-purple-600 hover:bg-purple-700"
+                      >
+                        Continuar
+                      </Button>
+                    )}
+                  </>
                 ) : (
                   <>
                     <Textarea
                       placeholder="Escribe tus comentarios aquí..."
                       onChange={handleTextAnswer}
                       className="w-full h-32"
+                      defaultValue={answers[currentQuestion.id] || ""}
                     />
-                    <Button onClick={() => setShowResults(true)} className="w-full mt-4 bg-purple-600 hover:bg-purple-700">
-                      Terminar
+                    <Button 
+                      onClick={() => {
+                        if (currentQuestionIndex === questions.length - 1 || 
+                            !questions.some((q, index) => index > currentQuestionIndex && (!q.condition || q.condition(answers)))) {
+                          setShowResults(true)
+                        } else {
+                          // Find the next question
+                          const nextQuestionIndex = questions.findIndex((q, index) =>
+                            index > currentQuestionIndex && (!q.condition || q.condition(answers))
+                          )
+                          
+                          if (nextQuestionIndex !== -1) {
+                            setCurrentQuestionIndex(nextQuestionIndex)
+                          } else {
+                            setShowResults(true)
+                          }
+                        }
+                      }} 
+                      className="w-full mt-4 bg-purple-600 hover:bg-purple-700"
+                    >
+                      {currentQuestionIndex === questions.length - 1 || 
+                       !questions.some((q, index) => index > currentQuestionIndex && (!q.condition || q.condition(answers))) 
+                        ? "Terminar" : "Continuar"}
                     </Button>
                   </>
                 )}
@@ -229,20 +331,39 @@ export function PetToyQuiz() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <h2 className="text-xl font-semibold mb-4 text-purple-800">Resumen de tus respuestas:</h2>
-              {Object.entries(answers).map(([questionId, answer]) => {
-                const question = questions.find(q => q.id === questionId)
-                return (
-                  <div key={questionId} className="mb-4 bg-purple-50 p-4 rounded-lg">
-                    <h3 className="font-bold text-purple-700">{question?.text.replace("[mascota]", answers.petType ? answers.petType.toLowerCase() : "mascota")}</h3>
-                    <p className="text-purple-600">{answer}</p>
-                  </div>
-                )
-              })}
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center p-10">
+                  <Loader2 className="h-12 w-12 animate-spin text-purple-600 mb-4" />
+                  <p className="text-purple-700 font-medium">Buscando los mejores juguetes para tu mascota...</p>
+                </div>
+              ) : recommendations ? (
+                <>
+                  <ProductRecommendations
+                    products={recommendations.products}
+                    summary={recommendations.summary_es}
+                  />
+                  <Button onClick={resetQuiz} className="w-full mt-8 bg-purple-600 hover:bg-purple-700">
+                    Comenzar de nuevo
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-xl font-semibold mb-4 text-purple-800">Resumen de tus respuestas:</h2>
+                  {Object.entries(answers).map(([questionId, answer]) => {
+                    const question = questions.find(q => q.id === questionId)
+                    return (
+                      <div key={questionId} className="mb-4 bg-purple-50 p-4 rounded-lg">
+                        <h3 className="font-bold text-purple-700">{question?.text.replace("[mascota]", answers.petType ? answers.petType.toLowerCase() : "mascota")}</h3>
+                        <p className="text-purple-600">{answer}</p>
+                      </div>
+                    )
+                  })}
 
-              <Button onClick={resetQuiz} className="w-full mt-4 bg-purple-600 hover:bg-purple-700">
-                Comenzar de nuevo
-              </Button>
+                  <Button onClick={resetQuiz} className="w-full mt-4 bg-purple-600 hover:bg-purple-700">
+                    Comenzar de nuevo
+                  </Button>
+                </>
+              )}
             </motion.div>
           )}
         </CardContent>
