@@ -29,10 +29,17 @@ const questions: Question[] = [
   },
   {
     id: "size",
-    text: "¿Cuál es el tamaño de tu [mascota]?",
+    text: "¿Cuál es el tamaño de tu perro?",
     options: ["Pequeño (menos de 10kg)", "Mediano (10-25kg)", "Grande (más de 25kg)"],
     icon: <Dog className="w-8 h-8" />,
-    condition: (answers) => ["Perro", "Gato", "Conejo"].includes(answers.petType)
+    condition: (answers) => answers.petType === "Perro"
+  },
+  {
+    id: "rabbitSize",
+    text: "¿Cuál es el tamaño de tu conejo?",
+    options: ["Pequeño (menos de 1.5kg)", "Mediano (1.5-3kg)", "Grande (más de 3kg)"],
+    icon: <Rabbit className="w-8 h-8" />,
+    condition: (answers) => answers.petType === "Conejo"
   },
   {
     id: "age",
@@ -52,7 +59,7 @@ const questions: Question[] = [
     text: "¿Cuánto tiempo al día dedicas a jugar con tu [mascota]?",
     options: ["Menos de 15 minutos", "Entre 15-30 minutos", "Más de 30 minutos"],
     icon: <Dog className="w-8 h-8" />,
-    condition: (answers) => answers.energyLevel !== "Bajo"
+    condition: (answers) => answers.energyLevel !== "Bajo" && answers.petType !== "Otro"
   },
   {
     id: "toyDogPreference",
@@ -87,7 +94,10 @@ const questions: Question[] = [
     text: "¿Tu mascota es un masticador agresivo?",
     options: ["Sí, destruye juguetes rápidamente", "Moderado, los juguetes duran un tiempo razonable", "No, es muy cuidadoso con sus juguetes"],
     icon: <Dog className="w-8 h-8" />,
-    condition: (answers) => ["Juguetes para morder o masticar", "Juguetes para masticar"].includes(answers.toyDogPreference) || ["Juguetes para masticar"].includes(answers.toyRabbitPreference) || ["Juguetes para masticar"].includes(answers.toyOtherPreference)
+    condition: (answers) => 
+      (answers.petType === "Perro" && ["Juguetes para morder o masticar"].includes(answers.toyDogPreference)) || 
+      (answers.petType === "Conejo" && ["Juguetes para masticar"].includes(answers.toyRabbitPreference)) || 
+      (answers.petType === "Otro" && ["Juguetes para masticar"].includes(answers.toyOtherPreference))
   },
   {
     id: "playEnvironment",
@@ -100,7 +110,7 @@ const questions: Question[] = [
     text: "¿Tu [mascota] disfruta de juguetes que hacen ruido (chirridos, campanillas, etc.)?",
     options: ["Sí, le encantan", "Le son indiferentes", "No, les tiene miedo o no muestra interés"],
     icon: <Dog className="w-8 h-8" />,
-    condition: (answers) => answers.petType !== "Otro"
+    condition: (answers) => answers.petType === "Perro" || answers.petType === "Gato"
   },
   {
     id: "materialSensitivity",
@@ -119,7 +129,9 @@ const questions: Question[] = [
     text: "¿Qué tan importante es la estimulación mental para tu [mascota]?",
     options: ["Muy importante, necesita desafíos mentales", "Moderadamente importante", "No parece necesitarla especialmente"],
     icon: <Dog className="w-8 h-8" />,
-    condition: (answers) => answers.energyLevel !== "Bajo" || answers.age === "Senior (más de 7 años)"
+    condition: (answers) => 
+      (answers.energyLevel !== "Bajo" && answers.petType !== "Conejo") || 
+      (answers.age === "Senior (más de 7 años)" && answers.petType !== "Otro")
   },
   {
     id: "additionalComments",
