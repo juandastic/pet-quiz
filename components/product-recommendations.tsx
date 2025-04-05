@@ -6,6 +6,7 @@ import { ProductRecommendation } from '@/services/api';
 import { motion } from 'framer-motion';
 import { Button } from './ui/button';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { usePostHog } from 'posthog-js/react';
 
 interface ProductRecommendationsProps {
   products: ProductRecommendation[];
@@ -15,6 +16,7 @@ interface ProductRecommendationsProps {
 export function ProductRecommendations({ products, summary }: ProductRecommendationsProps) {
   const [activeIndex, setActiveIndex] = React.useState(0);
   const carouselRef = React.useRef<HTMLDivElement>(null);
+  const posthog = usePostHog();
 
   const scrollToIndex = (index: number) => {
     if (carouselRef.current) {
@@ -24,6 +26,13 @@ export function ProductRecommendations({ products, summary }: ProductRecommendat
         behavior: 'smooth'
       });
       setActiveIndex(index);
+
+      // Track carousel navigation via dots
+      posthog.capture("product_carousel_dot_click", {
+        from_index: activeIndex,
+        to_index: index,
+        product_id: products[index].id
+      });
     }
   };
 
@@ -32,6 +41,7 @@ export function ProductRecommendations({ products, summary }: ProductRecommendat
       const containerWidth = carouselRef.current.offsetWidth;
       const scrollWidth = carouselRef.current.scrollWidth;
       const scrollLeft = carouselRef.current.scrollLeft;
+      let newIndex;
 
       // Check if we're at the end
       if (scrollLeft + containerWidth >= scrollWidth - 20) {
@@ -40,15 +50,24 @@ export function ProductRecommendations({ products, summary }: ProductRecommendat
           left: 0,
           behavior: 'smooth'
         });
-        setActiveIndex(0);
+        newIndex = 0;
+        setActiveIndex(newIndex);
       } else {
         // Move forward by one container width
         carouselRef.current.scrollTo({
           left: scrollLeft + containerWidth,
           behavior: 'smooth'
         });
-        setActiveIndex(Math.min(activeIndex + 1, products.length - 1));
+        newIndex = Math.min(activeIndex + 1, products.length - 1);
+        setActiveIndex(newIndex);
       }
+
+      // Track carousel navigation
+      posthog.capture("product_carousel_next", {
+        from_index: activeIndex,
+        to_index: newIndex,
+        product_id: products[newIndex].id
+      });
     }
   };
 
@@ -56,6 +75,7 @@ export function ProductRecommendations({ products, summary }: ProductRecommendat
     if (carouselRef.current) {
       const containerWidth = carouselRef.current.offsetWidth;
       const scrollLeft = carouselRef.current.scrollLeft;
+      let newIndex;
 
       // Check if we're at the beginning
       if (scrollLeft <= 20) {
@@ -64,19 +84,37 @@ export function ProductRecommendations({ products, summary }: ProductRecommendat
           left: carouselRef.current.scrollWidth - containerWidth,
           behavior: 'smooth'
         });
-        setActiveIndex(products.length - 1);
+        newIndex = products.length - 1;
+        setActiveIndex(newIndex);
       } else {
         // Move backward by one container width
         carouselRef.current.scrollTo({
           left: scrollLeft - containerWidth,
           behavior: 'smooth'
         });
-        setActiveIndex(Math.max(activeIndex - 1, 0));
+        newIndex = Math.max(activeIndex - 1, 0);
+        setActiveIndex(newIndex);
       }
+
+      // Track carousel navigation
+      posthog.capture("product_carousel_prev", {
+        from_index: activeIndex,
+        to_index: newIndex,
+        product_id: products[newIndex].id
+      });
     }
   };
 
-  const openProductLink = (url: string) => {
+  const openProductLink = (url: string, product: ProductRecommendation) => {
+    // Track product click before opening the link
+    posthog.capture("product_click", {
+      product_id: product.id,
+      product_name: product.name,
+      product_price: product.price,
+      product_url: url,
+      position_in_carousel: activeIndex
+    });
+
     window.open(url, '_blank');
   };
 
@@ -143,7 +181,7 @@ export function ProductRecommendations({ products, summary }: ProductRecommendat
                 <div
                   key={product.id}
                   className="w-full flex-shrink-0 snap-center px-1"
-                  onClick={() => openProductLink(product.product_link)}
+                  onClick={() => openProductLink(product.product_link, product)}
                 >
                   <Card className="bg-white h-full hover:shadow-lg transition-shadow border border-purple-100 overflow-hidden cursor-pointer">
                     <div className="aspect-square overflow-hidden rounded-t-lg">
@@ -170,7 +208,7 @@ export function ProductRecommendations({ products, summary }: ProductRecommendat
                         className="w-full flex items-center justify-center gap-2 border-purple-300"
                         onClick={(e) => {
                           e.stopPropagation();
-                          openProductLink(product.product_link);
+                          openProductLink(product.product_link, product);
                         }}
                       >
                         Ver en Amazon <ExternalLink className="h-4 w-4" />

@@ -11,6 +11,7 @@ import { motion } from "framer-motion"
 import { Dog, Cat, Rabbit, Loader2, ArrowLeft } from "lucide-react"
 import { formatQuizAnswers, getRecommendations, RecommendationResponse } from "@/services/api"
 import { ProductRecommendations } from "@/components/product-recommendations"
+import { usePostHog } from "posthog-js/react"
 
 type Question = {
   id: string
@@ -148,12 +149,21 @@ export function PetToyQuiz() {
   const [isLoading, setIsLoading] = useState(false)
   const [recommendations, setRecommendations] = useState<RecommendationResponse | null>(null)
   const [answeredQuestions, setAnsweredQuestions] = useState<number[]>([])
+  const posthog = usePostHog()
 
   const currentQuestion = questions[currentQuestionIndex]
 
   const handleAnswer = (answer: string) => {
     const newAnswers = { ...answers, [currentQuestion.id]: answer }
     setAnswers(newAnswers)
+
+    // Track the answer with PostHog
+    posthog.capture("quiz_question_answered", {
+      question_id: currentQuestion.id,
+      question_text: currentQuestion.text,
+      answer: answer,
+      question_index: currentQuestionIndex
+    })
 
     // Add current question to answered questions if not already there
     if (!answeredQuestions.includes(currentQuestionIndex)) {
@@ -166,8 +176,18 @@ export function PetToyQuiz() {
 
     if (nextQuestionIndex !== -1) {
       setCurrentQuestionIndex(nextQuestionIndex)
+      // Track navigation to next question
+      posthog.capture("quiz_navigation", {
+        from_question_index: currentQuestionIndex,
+        to_question_index: nextQuestionIndex,
+        direction: "forward"
+      })
     } else {
       setShowResults(true)
+      // Track quiz completion
+      posthog.capture("quiz_completed", {
+        total_questions_answered: Object.keys(newAnswers).length
+      })
     }
   }
 
@@ -182,6 +202,9 @@ export function PetToyQuiz() {
     setShowResults(false)
     setRecommendations(null)
     setAnsweredQuestions([])
+
+    // Track quiz reset
+    posthog.capture("quiz_reset")
   }
 
   const goToPreviousQuestion = () => {
@@ -191,7 +214,15 @@ export function PetToyQuiz() {
       .sort((a, b) => b - a) // Sort in descending order to get the most recent previous question
 
     if (previousQuestions.length > 0) {
-      setCurrentQuestionIndex(previousQuestions[0])
+      const prevIndex = previousQuestions[0]
+      setCurrentQuestionIndex(prevIndex)
+
+      // Track navigation to previous question
+      posthog.capture("quiz_navigation", {
+        from_question_index: currentQuestionIndex,
+        to_question_index: prevIndex,
+        direction: "back"
+      })
     }
   }
 
@@ -203,8 +234,19 @@ export function PetToyQuiz() {
           const formattedQuiz = formatQuizAnswers(answers, questions);
           const data = await getRecommendations(formattedQuiz);
           setRecommendations(data);
+
+          // Track recommendations received
+          posthog.capture("recommendations_received", {
+            number_of_products: data.products.length,
+            product_ids: data.products.map(p => p.id)
+          });
         } catch (error) {
           console.error('Error fetching recommendations:', error);
+
+          // Track error
+          posthog.capture("recommendations_error", {
+            error: String(error)
+          });
         } finally {
           setIsLoading(false);
         }
@@ -212,7 +254,7 @@ export function PetToyQuiz() {
     }
 
     fetchRecommendations();
-  }, [showResults, answers]);
+  }, [showResults, answers, posthog]);
 
   const totalQuestionsLeft = questions.filter((q, index) => index > currentQuestionIndex && (!q.condition || q.condition(answers))).length
   const totalQuestions = (Object.keys(answers).length + totalQuestionsLeft)
