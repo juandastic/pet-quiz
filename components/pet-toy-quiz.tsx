@@ -350,9 +350,9 @@ export function PetToyQuiz() {
                       className="w-full h-32"
                       defaultValue={answers[currentQuestion.id] || ""}
                     />
-                    <Button 
+                    <Button
                       onClick={() => {
-                        if (currentQuestionIndex === questions.length - 1 || 
+                        if (currentQuestionIndex === questions.length - 1 ||
                             !questions.some((q, index) => index > currentQuestionIndex && (!q.condition || q.condition(answers)))) {
                           setShowResults(true)
                         } else {
@@ -360,17 +360,17 @@ export function PetToyQuiz() {
                           const nextQuestionIndex = questions.findIndex((q, index) =>
                             index > currentQuestionIndex && (!q.condition || q.condition(answers))
                           )
-                          
+
                           if (nextQuestionIndex !== -1) {
                             setCurrentQuestionIndex(nextQuestionIndex)
                           } else {
                             setShowResults(true)
                           }
                         }
-                      }} 
+                      }}
                       className="w-full mt-4 bg-purple-600 hover:bg-purple-700"
                     >
-                      {currentQuestionIndex === questions.length - 1 || 
+                      {currentQuestionIndex === questions.length - 1 ||
                        !questions.some((q, index) => index > currentQuestionIndex && (!q.condition || q.condition(answers))) 
                         ? "Terminar" : "Continuar"}
                     </Button>

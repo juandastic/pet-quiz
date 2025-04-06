@@ -200,7 +200,7 @@ export function ProductRecommendations({ products, summary }: ProductRecommendat
                       <div className="font-bold text-lg text-purple-700 mb-2">
                         ${product.price.toFixed(2)}
                       </div>
-                      <p className="text-sm text-gray-600">{product.explanation}</p>
+                      <p className="text-sm text-gray-600">{product.explanation_es}</p>
                     </CardContent>
                     <CardFooter className="p-4 pt-0">
                       <Button

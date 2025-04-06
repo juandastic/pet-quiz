@@ -8,7 +8,8 @@ export interface ProductRecommendation {
   image_url: string;
   product_link: string;
   search_query: string;
-  explanation: string;
+  explanation_es: string;
+  explanation_en: string;
 }
 
 export interface RecommendationResponse {
