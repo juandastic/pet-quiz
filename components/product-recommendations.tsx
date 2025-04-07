@@ -134,7 +134,7 @@ export function ProductRecommendations({ products, summary }: ProductRecommendat
   return (
     <div className="space-y-6">
       <div className="bg-purple-50 p-4 rounded-lg">
-        <h2 className="text-xl font-semibold text-purple-800 mb-2">Recomendación personalizada</h2>
+        <h2 className="text-xl font-semibold text-purple-800 mb-2">Recomendación personalizada para ti</h2>
         <p className="text-purple-600">{summary}</p>
       </div>
 
@@ -146,7 +146,7 @@ export function ProductRecommendations({ products, summary }: ProductRecommendat
           className="overflow-hidden"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-purple-800">Productos recomendados</h2>
+            <h2 className="text-xl font-semibold text-purple-800">Productos recomendados para tu mascota</h2>
             <div className="flex space-x-2">
               <Button
                 onClick={prevProduct}
@@ -198,7 +198,7 @@ export function ProductRecommendations({ products, summary }: ProductRecommendat
                     </CardHeader>
                     <CardContent className="p-4 pt-2">
                       <div className="font-bold text-lg text-purple-700 mb-2">
-                        ${product.price.toFixed(2)}
+                        ${product.price.toFixed(2)} MXN
                       </div>
                       <p className="text-sm text-gray-600">{product.explanation_es}</p>
                     </CardContent>
@@ -211,7 +211,7 @@ export function ProductRecommendations({ products, summary }: ProductRecommendat
                           openProductLink(product.product_link, product);
                         }}
                       >
-                        Ver en Amazon <ExternalLink className="h-4 w-4" />
+                        Ver en Amazon México <ExternalLink className="h-4 w-4" />
                       </Button>
                     </CardFooter>
                   </Card>

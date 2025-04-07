@@ -95,9 +95,9 @@ const questions: Question[] = [
     text: "¿Tu mascota es un masticador agresivo?",
     options: ["Sí, destruye juguetes rápidamente", "Moderado, los juguetes duran un tiempo razonable", "No, es muy cuidadoso con sus juguetes"],
     icon: <Dog className="w-8 h-8" />,
-    condition: (answers) => 
-      (answers.petType === "Perro" && ["Juguetes para morder o masticar"].includes(answers.toyDogPreference)) || 
-      (answers.petType === "Conejo" && ["Juguetes para masticar"].includes(answers.toyRabbitPreference)) || 
+    condition: (answers) =>
+      (answers.petType === "Perro" && ["Juguetes para morder o masticar"].includes(answers.toyDogPreference)) ||
+      (answers.petType === "Conejo" && ["Juguetes para masticar"].includes(answers.toyRabbitPreference)) ||
       (answers.petType === "Otro" && ["Juguetes para masticar"].includes(answers.toyOtherPreference))
   },
   {
@@ -267,10 +267,10 @@ export function PetToyQuiz() {
       <Card className="w-full max-w-md mx-auto bg-white/80 backdrop-blur-sm shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-purple-700">
-            Descubre el juguete ideal para tu mascota
+            Descubre el juguete ideal para tu mascota en México
           </CardTitle>
           {!showResults && (
-            <p className="text-purple-600 mt-1">Responde estas preguntas para encontrar los mejores juguetes</p>
+            <p className="text-purple-600 mt-1">Responde estas preguntas para encontrar los mejores juguetes disponibles en México</p>
           )}
         </CardHeader>
         <CardContent>
@@ -310,8 +310,8 @@ export function PetToyQuiz() {
                 </h2>
                 {currentQuestion.options.length > 0 ? (
                   <>
-                    <RadioGroup 
-                      onValueChange={handleAnswer} 
+                    <RadioGroup
+                      onValueChange={handleAnswer}
                       className="space-y-2"
                       defaultValue={answers[currentQuestion.id]}
                     >
@@ -323,19 +323,19 @@ export function PetToyQuiz() {
                       ))}
                     </RadioGroup>
                     {answers[currentQuestion.id] && (
-                      <Button 
+                      <Button
                         onClick={() => {
                           // Find the next question
                           const nextQuestionIndex = questions.findIndex((q, index) =>
                             index > currentQuestionIndex && (!q.condition || q.condition(answers))
                           )
-                          
+
                           if (nextQuestionIndex !== -1) {
                             setCurrentQuestionIndex(nextQuestionIndex)
                           } else {
                             setShowResults(true)
                           }
-                        }} 
+                        }}
                         className="w-full mt-4 bg-purple-600 hover:bg-purple-700"
                       >
                         Continuar
